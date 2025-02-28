@@ -4,6 +4,9 @@ import email
 from email.header import decode_header
 import re
 import logging
+import time
+import os
+import json
 
 class EmailClient:
     def __init__(self, user=None, password=None):
@@ -48,13 +51,21 @@ class EmailClient:
             return datetime_obj.strftime('%Y-%m-%d %H:%M:%S')
         def _decode_email_header(self, header):
             '''解码邮件头'''
+            if header is None:
+                return ""  # Return an empty string if the header is None
             decoded_header = decode_header(header)[0]
             if isinstance(decoded_header, tuple):
                 part, charset = decoded_header
                 if isinstance(part, bytes):  # 检查是否为字节串
-                    if charset:  # 如果有字符集，按指定字符集解码
-                        decoded_part = part.decode(charset)
-                    else:  # 没有指定字符集时尝试UTF-8解码，或选择其他策略
+                    try:
+                        # 尝试使用指定的字符集进行解码
+                        if charset and charset.lower() != 'unknown-8bit':
+                            decoded_part = part.decode(charset)
+                        else:
+                            # 若字符集为 unknown-8bit 或为空，使用 utf-8 并采用 replace 策略解码
+                            decoded_part = part.decode('utf-8', errors='replace')
+                    except (UnicodeDecodeError, LookupError):
+                        # 若解码失败，使用 utf-8 并采用 replace 策略解码
                         decoded_part = part.decode('utf-8', errors='replace')
                 else:  # 如果已经是字符串，直接使用
                     decoded_part = part
@@ -191,7 +202,72 @@ class EmailClient:
         else:
             print("未登录邮箱，无法搜索邮件。")
             return []
-        
+    def save_emails_to_local(self, folder, save_path):
+        """
+        按邮箱文件夹获取所有邮件并以 JSON 格式保存在本地
+        :param folder: 邮箱文件夹名称
+        :param save_path: 保存邮件的本地路径
+        :return: 成功保存的邮件数量
+        """
+        if not self.mail:
+            print("未登录邮箱，无法获取邮件。")
+            return 0
+    
+        # 选择文件夹
+        result = self.select_folder(folder)
+        if not result:
+            return 0
+    
+        # 获取所有邮件的ID
+        email_ids = self.search_emails('ALL')
+        if not email_ids:
+            print(f"在文件夹 {folder} 中未找到邮件。")
+            return 0
+    
+        # 创建保存路径
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+    
+        # 生成文件名
+        filename = f"{folder}.json"
+        file_path = os.path.join(save_path, filename)
+    
+        saved_count = 0
+        # 以追加模式打开文件，写入左中括号表示开始一个 JSON 数组
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write('[')
+            first_email = True
+            for email_id in email_ids:
+                # 获取邮件内容
+                email_obj = self.fetch_email(email_id)
+                if email_obj:
+                    # 确保所有值都是 JSON 可序列化的
+                    email_dict = {
+                        "email_id": str(email_obj.email_id),
+                        # 调用正确的解码方法
+                        "subject": str(EmailClient.Email._decode_email_header(email_obj, email_obj.subject)),
+                        "sender": str(EmailClient.Email._decode_email_header(email_obj, email_obj.sender)),
+                        "date": str(email_obj.date),
+                        "content": str(email_obj.content)
+                    }
+                    # 如果不是第一封邮件，先写入逗号分隔
+                    if not first_email:
+                        f.write(',')
+                    else:
+                        first_email = False
+                    # 将邮件信息以 JSON 格式写入文件
+                    json.dump(email_dict, f, ensure_ascii=False, indent=4)
+                    saved_count += 1
+                    print(f"已保存邮件: {email_obj.subject}")
+    
+                # 添加小的延迟，避免瞬间完成请求
+                time.sleep(0.5)
+            # 写入右中括号表示 JSON 数组结束
+            f.write(']')
+    
+        print(f"共保存 {saved_count} 封邮件到 {file_path}。")
+        return saved_count
+    
     # 配置日志记录
     logging.basicConfig(level=logging.ERROR)
     
