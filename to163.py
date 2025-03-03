@@ -48,7 +48,7 @@ class EmailClient:
             """
             date_str = re.sub(r' \(CST\)', '', date)
             datetime_obj = datetime.strptime(date_str, '%a, %d %b %Y %H:%M:%S %z')
-            return datetime_obj.strftime('%Y-%m-%d %H:%M:%S')
+            return datetime_obj.strftime('%Y-%m-%d')
         def _decode_email_header(self, header):
             '''解码邮件头'''
             if header is None:
