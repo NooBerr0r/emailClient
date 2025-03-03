@@ -1,155 +1,163 @@
-import tkinter as tk
-from tkinter import messagebox
+import sys
+import random
+from datetime import datetime, timedelta
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QListWidget, QListWidgetItem, QTextEdit
+from PyQt5.QtCore import Qt
+
+# 生成随机邮件数据
+def generate_random_emails(num_emails):
+    subjects = ["项目进展汇报", "会议邀请", "技术分享", "培训通知", "活动公告"]
+    senders = ["team1@example.com", "team2@example.com", "team3@example.com", "team4@example.com", "team5@example.com"]
+    contents = ["项目已经完成了 50%", "本周三下午 3 点开会", "分享最新的技术趋势", "参加培训可获得证书", "周末有户外活动"]
+    emails = []
+    start_date = datetime.now() - timedelta(days=30)
+
+    for i in range(num_emails):
+        email = {
+            "id": i + 1,
+            "subject": random.choice(subjects),
+            "sender": f"发件人 <{random.choice(senders)}>",
+            "date": (start_date + timedelta(days=random.randint(0, 30))).strftime("%Y-%m-%d %H:%M"),
+            "content": random.choice(contents)
+        }
+        emails.append(email)
+    return emails
 
 # 不同文件夹的虚拟邮件数据
 folder_emails = {
-    "Inbox": [
-        {
-            "id": 1,
-            "subject": "重要会议通知",
-            "sender": "会议组织者 <organizer@example.com>",
-            "date": "2025-02-28 10:00",
-            "content": "各位同事，本周将召开重要会议，请准时参加。"
-        },
-        {
-            "id": 2,
-            "subject": "项目进度更新",
-            "sender": "项目负责人 <project_manager@example.com>",
-            "date": "2025-02-27 14:30",
-            "content": "项目目前进展顺利，预计下周完成第一阶段。"
-        },
-        {
-            "id": 3,
-            "subject": "技术分享邀请",
-            "sender": "技术团队 <tech_team@example.com>",
-            "date": "2025-02-26 16:15",
-            "content": "诚邀大家参加本周的技术分享会。"
-        }
-    ],
-    "垃圾邮件": [
-        {
-            "id": 4,
-            "subject": "快速致富秘籍",
-            "sender": "不明发件人 <spammer@example.com>",
-            "date": "2025-02-27 12:00",
-            "content": "点击链接，轻松致富！"
-        },
-        {
-            "id": 5,
-            "subject": "免费礼品领取",
-            "sender": "可疑发件人 <scammer@example.com>",
-            "date": "2025-02-26 11:30",
-            "content": "填写表格，免费领取礼品！"
-        }
-    ],
-    "订阅邮件": [
-        {
-            "id": 6,
-            "subject": "最新科技资讯",
-            "sender": "科技杂志 <tech_magazine@example.com>",
-            "date": "2025-02-28 09:00",
-            "content": "本期科技杂志带来最新的科技动态。"
-        },
-        {
-            "id": 7,
-            "subject": "时尚潮流推荐",
-            "sender": "时尚杂志 <fashion_magazine@example.com>",
-            "date": "2025-02-27 10:30",
-            "content": "了解最新的时尚潮流。"
-        }
-    ]
+    "Inbox": generate_random_emails(50),
+    "垃圾邮件": [],
+    "订阅邮件": []
 }
 
-
-class EmailClient(tk.Tk):
+class LoginWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.title("邮件客户端")
-        self.geometry("800x600")
+        self.initUI()
 
-        # 创建文件夹选择下拉菜单
-        folder_frame = tk.Frame(self)
-        folder_frame.pack(side=tk.TOP, fill=tk.X)
+    def initUI(self):
+        layout = QVBoxLayout()
 
-        self.selected_folder = tk.StringVar(self)
-        self.selected_folder.set("Inbox")  # 默认选择收件箱
+        # 用户名输入框
+        self.username_input = QLineEdit()
+        self.username_input.setPlaceholderText("用户名")
+        layout.addWidget(self.username_input)
 
-        folder_menu = tk.OptionMenu(folder_frame, self.selected_folder, *folder_emails.keys(),
-                                    command=self.change_folder)
-        folder_menu.pack(side=tk.LEFT)
+        # 密码输入框
+        self.password_input = QLineEdit()
+        self.password_input.setPlaceholderText("密码")
+        self.password_input.setEchoMode(QLineEdit.Password)
+        layout.addWidget(self.password_input)
 
-        # 创建搜索框和搜索按钮
-        search_frame = tk.Frame(self)
-        search_frame.pack(side=tk.TOP, fill=tk.X)
+        # 登录按钮
+        login_button = QPushButton("登录")
+        login_button.clicked.connect(self.login)
+        layout.addWidget(login_button)
 
-        self.search_entry = tk.Entry(search_frame)
-        self.search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.setLayout(layout)
+        self.setWindowTitle("登录")
+        self.setGeometry(300, 300, 300, 200)
 
-        search_button = tk.Button(search_frame, text="搜索", command=self.search_emails)
-        search_button.pack(side=tk.RIGHT)
+    def login(self):
+        # 这里简单模拟登录成功，实际应用中需要验证用户名和密码
+        username = self.username_input.text()
+        password = self.password_input.text()
+        if username and password:
+            self.close()
+            self.mail_window = MailWindow()
+            self.mail_window.show()
 
-        # 创建左侧邮件列表区域
-        self.email_listbox = tk.Listbox(self, width=30)
-        self.email_listbox.pack(side=tk.LEFT, fill=tk.Y)
-        self.populate_email_listbox(folder_emails[self.selected_folder.get()])
-        self.email_listbox.bind("<<ListboxSelect>>", self.show_email_detail)
+class MailWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.current_folder = "Inbox"
+        self.current_page = 0
+        self.items_per_page = 15
+        self.initUI()
 
-        # 创建右侧邮件详情区域
-        self.detail_frame = tk.Frame(self)
-        self.detail_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+    def initUI(self):
+        layout = QHBoxLayout()
 
-        self.subject_label = tk.Label(self.detail_frame, text="主题: ")
-        self.subject_label.pack(pady=10)
+        # 左侧文件夹列表，显示文件夹下邮件数量
+        self.folder_list = QListWidget()
+        for folder, emails in folder_emails.items():
+            item = QListWidgetItem(f"{folder} ({len(emails)})")
+            self.folder_list.addItem(item)
+        self.folder_list.itemClicked.connect(self.show_emails)
+        layout.addWidget(self.folder_list)
 
-        self.sender_label = tk.Label(self.detail_frame, text="发件人: ")
-        self.sender_label.pack(pady=10)
+        # 右侧邮件列表
+        self.email_list = QListWidget()
+        self.email_list.setSelectionMode(QListWidget.MultiSelection)  # 设置多选模式
+        layout.addWidget(self.email_list)
 
-        self.date_label = tk.Label(self.detail_frame, text="日期: ")
-        self.date_label.pack(pady=10)
+        # 分页布局
+        self.page_layout = QHBoxLayout()
+        main_layout = QVBoxLayout()
+        main_layout.addLayout(layout)
+        main_layout.addLayout(self.page_layout)
 
-        self.content_text = tk.Text(self.detail_frame, wrap=tk.WORD)
-        self.content_text.pack(fill=tk.BOTH, expand=True)
+        # 退出按钮
+        logout_button = QPushButton("退出")
+        logout_button.clicked.connect(self.logout)
+        main_layout.addWidget(logout_button)
 
-    def populate_email_listbox(self, emails):
-        self.email_listbox.delete(0, tk.END)
-        for email in emails:
-            self.email_listbox.insert(tk.END, f"{email['subject']} - {email['sender']}")
+        self.setLayout(main_layout)
+        self.setWindowTitle("邮箱客户端")
+        self.setGeometry(300, 300, 800, 600)
 
-    def search_emails(self):
-        keyword = self.search_entry.get().lower()
-        current_folder = self.selected_folder.get()
-        if keyword:
-            filtered_emails = [email for email in folder_emails[current_folder] if
-                               keyword in email['subject'].lower() or keyword in email['sender'].lower()]
-            self.populate_email_listbox(filtered_emails)
-        else:
-            self.populate_email_listbox(folder_emails[current_folder])
+        # 初始显示收件箱邮件
+        self.show_emails(self.folder_list.item(0))
 
-    def show_email_detail(self, event):
-        selected_index = self.email_listbox.curselection()
-        if selected_index:
-            index = selected_index[0]
-            # 获取当前显示的邮件列表
-            current_emails = self.get_current_emails()
-            email = current_emails[index]
-            self.subject_label.config(text=f"主题: {email['subject']}")
-            self.sender_label.config(text=f"发件人: {email['sender']}")
-            self.date_label.config(text=f"日期: {email['date']}")
-            self.content_text.delete(1.0, tk.END)
-            self.content_text.insert(tk.END, email['content'])
+    def show_emails(self, item):
+        folder_name = item.text().split(" (")[0]
+        self.current_folder = folder_name
+        self.current_page = 0
+        self.update_email_list()
+        self.update_page_buttons()
 
-    def get_current_emails(self):
-        keyword = self.search_entry.get().lower()
-        current_folder = self.selected_folder.get()
-        if keyword:
-            return [email for email in folder_emails[current_folder] if
-                    keyword in email['subject'].lower() or keyword in email['sender'].lower()]
-        return folder_emails[current_folder]
+    def update_email_list(self):
+        emails = folder_emails[self.current_folder]
+        start_index = self.current_page * self.items_per_page
+        end_index = start_index + self.items_per_page
+        displayed_emails = emails[start_index:end_index]
 
-    def change_folder(self, folder):
-        self.populate_email_listbox(folder_emails[folder])
+        self.email_list.clear()
+        for email in displayed_emails:
+            item = QListWidgetItem(f"{email['subject']} - {email['sender']}")
+            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+            item.setCheckState(Qt.Unchecked)
+            self.email_list.addItem(item)
 
+    def update_page_buttons(self):
+        # 清空分页按钮
+        for i in reversed(range(self.page_layout.count())):
+            widget = self.page_layout.itemAt(i).widget()
+            if widget is not None:
+                widget.deleteLater()
+
+        emails = folder_emails[self.current_folder]
+        total_pages = (len(emails) + self.items_per_page - 1) // self.items_per_page
+
+        for page in range(total_pages):
+            page_button = QPushButton(str(page + 1))
+            if page == self.current_page:
+                page_button.setStyleSheet("background-color: lightblue")
+            page_button.clicked.connect(lambda _, p=page: self.change_page(p))
+            self.page_layout.addWidget(page_button)
+
+    def change_page(self, page):
+        self.current_page = page
+        self.update_email_list()
+        self.update_page_buttons()
+
+    def logout(self):
+        self.close()
+        self.login_window = LoginWindow()
+        self.login_window.show()
 
 if __name__ == "__main__":
-    app = EmailClient()
-    app.mainloop()
+    app = QApplication(sys.argv)
+    login_window = LoginWindow()
+    login_window.show()
+    sys.exit(app.exec_())

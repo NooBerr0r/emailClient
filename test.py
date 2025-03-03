@@ -22,5 +22,7 @@ for i in mailList:
         delList.append(tmp.email_id)
 print(saveList)
 print(delList)
+for i in delList:
+    mail.delete_email(i)
 # mail.fetch_email()
 mail.logout()

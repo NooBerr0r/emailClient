@@ -340,6 +340,28 @@ class EmailClient:
         else:
             print("未登录邮箱，无法复制邮件。")
             return False
+    
+    def delete_email(self, email_id):
+        '''
+        删除邮件
+        :param email_id: 要删除的邮件的ID
+        :return: 删除成功返回 True，失败返回 False
+        '''
+        # 检查是否已经登录到邮箱
+        if self.mail:
+            try:
+                typ, dat = self.mail.copy(email_id, 'Trash')
+                if typ == 'OK':
+                    print(f"邮件已成功标记为已删除{dat[0].decode()}")
+                    return True
+                else:
+                    print(dat[0].decode())
+                    return False
+            except imaplib.IMAP4.error as e:
+                print(f"删除邮件失败: {e}")
+                return False
+
+
     def logout(self):
         '''退出登录'''
         if self.mail:
